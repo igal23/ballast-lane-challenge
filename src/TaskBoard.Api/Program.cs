@@ -1,3 +1,4 @@
+using TaskBoard.Application.Auth;
 using TaskBoard.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -5,6 +6,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 builder.Services.AddTaskBoardInfrastructure(builder.Configuration);
+builder.Services.AddScoped<RegisterUser>();
 
 var app = builder.Build();
 
@@ -18,3 +20,5 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+public partial class Program;
