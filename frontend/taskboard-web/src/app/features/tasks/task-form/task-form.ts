@@ -1,14 +1,9 @@
-import { Component, input, output } from '@angular/core';
+import { Component, effect, input, output } from '@angular/core';
 import { AbstractControl, FormControl, FormGroup, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
-import { TaskStatus, TaskWriteRequest } from '../../../core/tasks/task.models';
+import { TaskItem, TaskStatus, TaskWriteRequest } from '../../../core/tasks/task.models';
 
 function utcDateString(): string {
   return new Date().toISOString().slice(0, 10);
-}
-
-function notBefore(minimum: string) {
-  return (control: AbstractControl<string>): ValidationErrors | null =>
-    control.value && control.value < minimum ? { beforeToday: true } : null;
 }
 
 @Component({
@@ -18,10 +13,17 @@ function notBefore(minimum: string) {
   styleUrl: './task-form.scss',
 })
 export class TaskFormComponent {
+  readonly task = input<TaskItem | null>(null);
   readonly serverErrors = input<Record<string, string>>({});
   readonly submitting = input(false);
   readonly submitted = output<TaskWriteRequest>();
+  readonly canceled = output<void>();
   readonly utcToday = utcDateString();
+  private readonly validDueDate = (control: AbstractControl<string>): ValidationErrors | null => {
+    const value = control.value;
+    if (!value || value >= this.utcToday || value === this.task()?.dueDate) return null;
+    return { beforeToday: true };
+  };
   readonly form = new FormGroup({
     title: new FormControl('', {
       nonNullable: true,
@@ -34,8 +36,18 @@ export class TaskFormComponent {
     status: new FormControl<TaskStatus>('Pending', { nonNullable: true }),
     dueDate: new FormControl('', {
       nonNullable: true,
-      validators: [notBefore(utcDateString())],
+      validators: [this.validDueDate],
     }),
+  });
+  private readonly syncTask = effect(() => {
+    const task = this.task();
+    if (!task) return;
+    this.form.reset({
+      title: task.title,
+      description: task.description ?? '',
+      status: task.status,
+      dueDate: task.dueDate ?? '',
+    });
   });
 
   submit(): void {

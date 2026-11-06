@@ -32,7 +32,12 @@
     }
   </div>
 
-  <button type="submit" [disabled]="form.invalid || submitting()">
-    {{ submitting() ? 'Adding task…' : 'Add task' }}
-  </button>
+  <div class="actions">
+    <button type="submit" [disabled]="form.invalid || submitting()">
+      {{ submitting() ? 'Saving…' : task() ? 'Save changes' : 'Add task' }}
+    </button>
+    @if (task()) {
+      <button type="button" class="secondary" [disabled]="submitting()" (click)="canceled.emit()">Cancel</button>
+    }
+  </div>
 </form>

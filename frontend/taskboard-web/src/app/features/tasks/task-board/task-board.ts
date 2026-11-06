@@ -22,6 +22,10 @@ export class TaskBoardComponent implements OnInit {
   readonly submitting = signal(false);
   readonly createError = signal<string | null>(null);
   readonly fieldErrors = signal<Record<string, string>>({});
+  readonly editing = signal<TaskItem | null>(null);
+  readonly pendingDeleteId = signal<string | null>(null);
+  readonly deletingId = signal<string | null>(null);
+  readonly mutationNotice = signal<string | null>(null);
 
   ngOnInit(): void { this.load(); }
 
@@ -34,23 +38,81 @@ export class TaskBoardComponent implements OnInit {
     });
   }
 
-  create(request: TaskWriteRequest): void {
+  save(request: TaskWriteRequest): void {
     if (this.submitting()) return;
     this.submitting.set(true);
     this.createError.set(null);
+    this.mutationNotice.set(null);
     this.fieldErrors.set({});
-    this.tasksApi.create(request).pipe(finalize(() => this.submitting.set(false))).subscribe({
+    const editing = this.editing();
+    const operation = editing
+      ? this.tasksApi.replace(editing.id, request)
+      : this.tasksApi.create(request);
+    operation.pipe(finalize(() => this.submitting.set(false))).subscribe({
       next: (task) => {
-        this.tasks.update((tasks) => [task, ...tasks]);
+        this.tasks.update((tasks) => editing
+          ? tasks.map((current) => current.id === task.id ? task : current)
+          : [task, ...tasks]);
+        this.editing.set(null);
         this.form().reset();
       },
-      error: (error: HttpErrorResponse) => this.handleCreateError(error),
+      error: (error: HttpErrorResponse) => this.handleSaveError(error),
     });
   }
 
-  private handleCreateError(error: HttpErrorResponse): void {
+  edit(task: TaskItem): void {
+    this.pendingDeleteId.set(null);
+    this.createError.set(null);
+    this.fieldErrors.set({});
+    this.editing.set(task);
+  }
+
+  cancelEdit(): void {
+    this.editing.set(null);
+    this.fieldErrors.set({});
+    this.form().reset();
+  }
+
+  requestDelete(id: string): void {
+    this.pendingDeleteId.set(id);
+  }
+
+  cancelDelete(): void {
+    this.pendingDeleteId.set(null);
+  }
+
+  confirmDelete(id: string): void {
+    if (this.deletingId()) return;
+    this.deletingId.set(id);
+    this.mutationNotice.set(null);
+    this.tasksApi.delete(id).pipe(finalize(() => this.deletingId.set(null))).subscribe({
+      next: () => {
+        this.tasks.update((tasks) => tasks.filter((task) => task.id !== id));
+        this.pendingDeleteId.set(null);
+        if (this.editing()?.id === id) this.cancelEdit();
+      },
+      error: (error: HttpErrorResponse) => {
+        this.pendingDeleteId.set(null);
+        if (error.status === 404) {
+          this.mutationNotice.set('This task no longer exists. The list was refreshed.');
+          this.load();
+        } else {
+          this.mutationNotice.set('Unable to delete task. Please try again.');
+        }
+      },
+    });
+  }
+
+  private handleSaveError(error: HttpErrorResponse): void {
+    if (error.status === 404) {
+      this.mutationNotice.set('This task no longer exists. The list was refreshed.');
+      this.editing.set(null);
+      this.form().reset();
+      this.load();
+      return;
+    }
     if (error.status !== 400) {
-      this.createError.set('Unable to add task. Please try again.');
+      this.createError.set('Unable to save task. Please try again.');
       return;
     }
     const errors = (error.error?.errors ?? []) as ApiFieldError[];

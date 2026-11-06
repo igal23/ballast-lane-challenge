@@ -59,4 +59,31 @@ describe('TaskFormComponent', () => {
       title: '', description: '', status: 'Pending', dueDate: '',
     });
   });
+
+  it('prefills edits, allows an unchanged overdue date, and rejects a changed past date', () => {
+    const emitted: TaskWriteRequest[] = [];
+    component.submitted.subscribe((value) => emitted.push(value));
+    fixture.componentRef.setInput('task', {
+      id: '11111111-1111-1111-1111-111111111111',
+      title: 'Overdue task',
+      description: 'Keep the original due date',
+      status: 'Pending',
+      dueDate: '2026-11-01',
+    });
+    fixture.detectChanges();
+
+    expect(component.form.getRawValue()).toEqual({
+      title: 'Overdue task',
+      description: 'Keep the original due date',
+      status: 'Pending',
+      dueDate: '2026-11-01',
+    });
+    component.form.patchValue({ status: 'Completed' });
+    component.submit();
+    expect(emitted[0]).toMatchObject({ status: 'Completed', dueDate: '2026-11-01' });
+
+    component.form.patchValue({ dueDate: '2026-11-02' });
+    component.submit();
+    expect(emitted).toHaveLength(1);
+  });
 });

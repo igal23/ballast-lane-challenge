@@ -23,4 +23,9 @@ h2 { margin: 0 0 1rem; }
 .status[data-status='Wip'] { background: #fff4d9; color: #795600; }
 .status[data-status='Completed'] { background: #ddf3e7; color: #155f43; }
 .due { margin-bottom: 0; font-size: .85rem; }
+.card-actions { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; margin-top: 1rem; padding-top: .85rem; border-top: 1px solid var(--line); }
+.card-actions span { width: 100%; color: #8c1727; font-size: .85rem; font-weight: 700; }
+.card-actions button { padding: .45rem .7rem; font-size: .85rem; }
+.card-actions .danger { border-color: #b42335; background: #b42335; color: white; }
+.card-actions .danger-link { border-color: transparent; background: transparent; color: #a51d2d; }
 @media (max-width: 36rem) { .board-heading { align-items: flex-start; } .refresh { margin-top: .2rem; } }

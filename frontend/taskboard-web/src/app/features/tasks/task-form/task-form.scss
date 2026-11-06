@@ -7,6 +7,8 @@ label span { color: var(--muted); font-size: .85rem; font-weight: 500; }
 input, textarea, select { width: 100%; padding: .75rem .85rem; border: 1px solid var(--line); border-radius: .7rem; background: var(--surface); color: var(--text); }
 input:focus, textarea:focus, select:focus { outline: 3px solid color-mix(in srgb, var(--accent) 18%, transparent); border-color: var(--accent); }
 .field-error { color: #a51d2d; }
-button { grid-column: 1 / -1; justify-self: start; padding: .8rem 1.2rem; border: 0; border-radius: .7rem; background: var(--accent); color: white; font-weight: 800; cursor: pointer; }
+.actions { grid-column: 1 / -1; display: flex; gap: .65rem; }
+button { justify-self: start; padding: .8rem 1.2rem; border: 0; border-radius: .7rem; background: var(--accent); color: white; font-weight: 800; cursor: pointer; }
+button.secondary { border: 1px solid var(--line); background: var(--surface); color: var(--text); }
 button:disabled { cursor: not-allowed; opacity: .5; }
-@media (max-width: 40rem) { form { grid-template-columns: 1fr; } .field-wide, button { grid-column: 1; } button { width: 100%; } }
+@media (max-width: 40rem) { form { grid-template-columns: 1fr; } .field-wide, .actions { grid-column: 1; } .actions { flex-direction: column; } button { width: 100%; } }

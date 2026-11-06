@@ -9,11 +9,13 @@
   </header>
 
   <section class="composer" aria-labelledby="new-task-title">
-    <h2 id="new-task-title">Add a task</h2>
+    <h2 id="new-task-title">{{ editing() ? 'Edit task' : 'Add a task' }}</h2>
     <app-task-form
+      [task]="editing()"
       [submitting]="submitting()"
       [serverErrors]="fieldErrors()"
-      (submitted)="create($event)"
+      (submitted)="save($event)"
+      (canceled)="cancelEdit()"
     />
     @if (createError()) { <p class="notice error" role="alert">{{ createError() }}</p> }
   </section>
@@ -23,6 +25,7 @@
       <h2 id="task-list-title">Current tasks</h2>
       @if (!loading() && !loadError()) { <span>{{ tasks().length }} total</span> }
     </div>
+    @if (mutationNotice()) { <p class="notice error" role="alert">{{ mutationNotice() }}</p> }
     @if (loading()) {
       <p class="notice" role="status">Loading tasks…</p>
     } @else if (loadError()) {
@@ -42,6 +45,18 @@
             </div>
             @if (task.description) { <p>{{ task.description }}</p> }
             <p class="due">{{ task.dueDate ? 'Due ' + task.dueDate : 'No due date' }}</p>
+            <div class="card-actions">
+              <button type="button" (click)="edit(task)" [disabled]="submitting() || deletingId() === task.id">Edit</button>
+              @if (pendingDeleteId() === task.id) {
+                <span>Delete this task?</span>
+                <button type="button" class="danger" (click)="confirmDelete(task.id)" [disabled]="deletingId() === task.id">
+                  {{ deletingId() === task.id ? 'Deleting…' : 'Confirm delete' }}
+                </button>
+                <button type="button" (click)="cancelDelete()" [disabled]="deletingId() === task.id">Cancel</button>
+              } @else {
+                <button type="button" class="danger-link" (click)="requestDelete(task.id)">Delete</button>
+              }
+            </div>
           </article>
         }
       </div>
