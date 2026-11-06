@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Npgsql;
 using TaskBoard.Application.Abstractions;
 using TaskBoard.Infrastructure.Persistence;
@@ -15,9 +16,16 @@ public static class DependencyInjection
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        services.AddSingleton(_ => NpgsqlDataSource.Create(
-            configuration.GetConnectionString("TaskBoard")!));
+        services.AddOptions<DatabaseOptions>()
+            .Configure(options =>
+                options.ConnectionString = configuration.GetConnectionString("TaskBoard") ?? string.Empty)
+            .Validate(options => !string.IsNullOrWhiteSpace(options.ConnectionString),
+                "ConnectionStrings:TaskBoard is required.")
+            .ValidateOnStart();
+        services.AddSingleton(serviceProvider => NpgsqlDataSource.Create(
+            serviceProvider.GetRequiredService<IOptions<DatabaseOptions>>().Value.ConnectionString));
         services.AddSingleton<DatabaseMigrator>();
+        services.AddSingleton<DevelopmentSeeder>();
         services.AddScoped<IUserRepository, NpgsqlUserRepository>();
         services.AddScoped<ITaskRepository, NpgsqlTaskRepository>();
         services.AddSingleton<IPasswordHasher, AspNetPasswordHasher>();
@@ -31,6 +39,7 @@ public static class DependencyInjection
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton<IAccessTokenIssuer, JwtAccessTokenIssuer>();
         services.AddSingleton<ICurrentDate, UtcCurrentDate>();
+        services.AddHostedService<DatabaseBootstrapHostedService>();
         return services;
     }
 }

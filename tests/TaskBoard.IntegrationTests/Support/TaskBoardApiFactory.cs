@@ -36,7 +36,9 @@ public sealed class TaskBoardApiFactory : WebApplicationFactory<Program>
                 ["ConnectionStrings:TaskBoard"] = _connectionString,
                 ["Jwt:Issuer"] = JwtIssuer,
                 ["Jwt:Audience"] = JwtAudience,
-                ["Jwt:SigningKey"] = JwtSigningKey
+                ["Jwt:SigningKey"] = JwtSigningKey,
+                ["AllowedOrigins:0"] = "http://localhost:4200",
+                ["HttpsRedirection:Enabled"] = "false"
             });
         });
         if (_fixedUtcNow is { } fixedUtcNow)

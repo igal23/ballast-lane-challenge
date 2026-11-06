@@ -1,6 +1,6 @@
-# TaskBoard - Codex + Superpowers challenge starter
+# TaskBoard
 
-**Status: preparation kit, not an implemented application.** This repository is intended to be opened in the Codex macOS app. Superpowers handles brainstorming, plans, TDD and reviews.
+TaskBoard is an ASP.NET Core and Angular task manager backed by PostgreSQL. The backend uses Clean Architecture, raw parameterized Npgsql, JWT bearer authentication, and owner-scoped task persistence.
 
 ## Important constraint
 
@@ -23,50 +23,87 @@ Install .NET SDK 10, Docker Desktop, Git, and a Node version supported by Angula
 bash scripts/check-prereqs.sh
 ```
 
-## 2. Initialize the repository
-
-```bash
-cd ~/Projects/taskboard-challenge
-git init
-git add .
-git commit -m "chore: initialize challenge starter"
-```
-
-In the **Codex app**, open this directory as a local project. Install **Superpowers** via `Plugins` > `Coding` > `Superpowers` (`+`). Start a new conversation after installation. Codex automatically reads `AGENTS.md` from the project root; do not paste its contents into every prompt.
-
-## 3. Start with design, then scaffold
-
-1. Paste `prompts/01-design.md` into Codex. It requests a design, not application code.
-2. Review the design. Once approved, send `prompts/02-plan.md`.
-3. When ready to implement, allow Codex to run `bash scripts/bootstrap.sh` **once** and follow `prompts/03-implement.md`.
-4. Use `prompts/04-review.md` before submission.
-
-The initial prompts intentionally do **not** repeat AGENTS.md or personal time budgets. Project docs supply context; Superpowers supplies workflow.
-
-## 4. PostgreSQL locally
+## 2. Run PostgreSQL and the API
 
 ```bash
 docker compose up -d
 docker compose ps
+dotnet run --project src/TaskBoard.Api --launch-profile http
 ```
 
-Development connection string (local only):
+The API listens on `http://localhost:5253`. Development startup applies migrations and idempotently creates the demo data.
+
+Development-only defaults are stored in `appsettings.Development.json`. They are intentionally public local values and must never be reused outside local development.
+
+Demo credentials:
 
 ```text
-Host=localhost;Port=5433;Database=taskboard;Username=taskboard;Password=taskboard_dev_only
+Email: demo@taskboard.local
+Password: TaskBoard demo passphrase 2026!
 ```
 
-The `db/init/` folder is initially empty of SQL intentionally. After design, Codex should create a versioned schema script and a Development-only seed mechanism. PostgreSQL initialization scripts run **only for a new database volume**. To reset **this project's database only**, use `docker compose down -v`, then `docker compose up -d`.
+For a non-Development environment, provide configuration externally. ASP.NET Core maps double underscores to configuration separators:
 
-## 5. Expected commands after implementation
+```bash
+export ConnectionStrings__TaskBoard='Host=localhost;Port=5433;Database=taskboard;Username=taskboard;Password=replace-me'
+export Jwt__Issuer='TaskBoard.Api'
+export Jwt__Audience='TaskBoard.Web'
+export Jwt__SigningKey='replace-with-at-least-32-random-utf8-bytes'
+export AllowedOrigins__0='https://your-frontend.example'
+```
+
+Startup fails clearly if the connection string, JWT issuer, audience, signing key, or allowed origins are missing. Production secrets must not be committed.
+
+## 3. Smoke test the API
+
+Ping and register a user:
+
+```bash
+curl -sS http://localhost:5253/api/public/ping
+
+curl -sS -X POST http://localhost:5253/api/auth/register \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"user@example.com","password":"a sufficiently long password"}'
+```
+
+Log in as the demo user, copy `accessToken` from the response, and set it locally:
+
+```bash
+curl -sS -X POST http://localhost:5253/api/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"demo@taskboard.local","password":"TaskBoard demo passphrase 2026!"}'
+
+TOKEN='paste-accessToken-here'
+
+curl -sS http://localhost:5253/api/auth/me \
+  -H "Authorization: Bearer $TOKEN"
+
+curl -sS http://localhost:5253/api/tasks \
+  -H "Authorization: Bearer $TOKEN"
+
+curl -sS -X POST http://localhost:5253/api/tasks \
+  -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{"title":"Verify local demo","description":null,"status":"Pending","dueDate":null}'
+```
+
+## 4. Tests and build
 
 ```bash
 dotnet test TaskBoard.slnx
-dotnet run --project src/TaskBoard.Api
-cd frontend/taskboard-web && npm run build
+cd frontend/taskboard-web
+npm test -- --watch=false
+npm run build
 ```
 
-Exact application startup commands, auth configuration and demo credentials must be completed in this README once implementation exists. Do not present this starter as a functioning app.
+## 5. Reset only this project's database
+
+This deletes the TaskBoard Docker volume and all local TaskBoard data:
+
+```bash
+docker compose down -v
+docker compose up -d
+```
 
 ## Documentation
 

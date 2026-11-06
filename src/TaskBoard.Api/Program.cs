@@ -1,9 +1,11 @@
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using TaskBoard.Application.Auth;
 using TaskBoard.Application.Tasks;
+using TaskBoard.Api.Configuration;
 using TaskBoard.Infrastructure;
 using TaskBoard.Infrastructure.Auth;
 
@@ -11,6 +13,22 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
+builder.Services.AddOptions<AllowedOriginsOptions>()
+    .Configure(options =>
+        options.Origins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>() ?? [])
+    .Validate(options => options.Origins.Length > 0, "AllowedOrigins must contain at least one origin.")
+    .Validate(options => options.Origins.All(origin => Uri.TryCreate(origin, UriKind.Absolute, out _)),
+        "AllowedOrigins contains an invalid absolute URI.")
+    .ValidateOnStart();
+builder.Services.AddCors();
+builder.Services.AddOptions<CorsOptions>()
+    .Configure<IOptions<AllowedOriginsOptions>>((options, allowedOrigins) =>
+    {
+        options.AddPolicy("Frontend", policy => policy
+            .WithOrigins(allowedOrigins.Value.Origins)
+            .AllowAnyHeader()
+            .AllowAnyMethod());
+    });
 builder.Services.AddTaskBoardInfrastructure(builder.Configuration);
 builder.Services.AddScoped<RegisterUser>();
 builder.Services.AddScoped<LoginUser>();
@@ -61,7 +79,11 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-app.UseHttpsRedirection();
+if (builder.Configuration.GetValue("HttpsRedirection:Enabled", true))
+{
+    app.UseHttpsRedirection();
+}
+app.UseCors("Frontend");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
