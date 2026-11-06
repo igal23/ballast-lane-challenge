@@ -2,10 +2,6 @@
 
 TaskBoard is an ASP.NET Core and Angular task manager backed by PostgreSQL. The backend uses Clean Architecture, raw parameterized Npgsql, JWT bearer authentication, and owner-scoped task persistence.
 
-## Important constraint
-
-The original assignment **explicitly prohibits Entity Framework, Dapper and mediator libraries**. This starter therefore uses **PostgreSQL + raw Npgsql**, not EF Core. Introducing EF Core would make the submission noncompliant, even though it could simplify CRUD.
-
 ## Stack
 
 - .NET 10, ASP.NET Core Web API controllers (four projects: Domain, Application, Infrastructure, Api)
@@ -15,7 +11,7 @@ The original assignment **explicitly prohibits Entity Framework, Dapper and medi
 - JWT bearer authentication and ASP.NET Core password hashing
 - Docker Compose for local PostgreSQL
 
-## 1. Check your Mac
+## 1. Requirements
 
 Install .NET SDK 10, Docker Desktop, Git, and a Node version supported by Angular 22. Angular 22 requires Node `^22.22.3`, `^24.15.0`, or `^26.0.0` (check https://angular.dev/reference/versions for updates). Run:
 
@@ -125,9 +121,3 @@ docker compose up -d
 - `docs/user-story.md`: initial user story and suggested acceptance criteria
 - `docs/ai-usage.md`: evidence of actual AI prompts, output, validation and corrections
 - `docs/presentation.md`: English presentation structure
-
-## Notes
-
-- ASP.NET Core controller-based Web API plus Angular is our interpretation of the ambiguous "MVC" wording. No Razor views unless specifically required by the panel.
-- Do not fabricate test runs, RED/GREEN evidence, generated code samples, or seeded users.
-- No remote Git push or deployment is authorized by this starter.
