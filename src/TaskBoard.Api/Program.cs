@@ -1,5 +1,10 @@
+using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
 using TaskBoard.Application.Auth;
 using TaskBoard.Infrastructure;
+using TaskBoard.Infrastructure.Auth;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -7,6 +12,30 @@ builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 builder.Services.AddTaskBoardInfrastructure(builder.Configuration);
 builder.Services.AddScoped<RegisterUser>();
+builder.Services.AddScoped<LoginUser>();
+builder.Services.AddScoped<GetCurrentUser>();
+
+builder.Services
+    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer();
+builder.Services
+    .AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
+    .Configure<IOptions<JwtOptions>>((options, jwtOptions) =>
+    {
+        var jwt = jwtOptions.Value;
+        options.MapInboundClaims = false;
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidIssuer = jwt.Issuer,
+            ValidateAudience = true,
+            ValidAudience = jwt.Audience,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt.SigningKey)),
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.FromSeconds(30)
+        };
+    });
 
 var app = builder.Build();
 
@@ -16,6 +45,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 

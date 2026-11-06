@@ -1,4 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using TaskBoard.Api.Contracts;
 using TaskBoard.Api.Controllers;
 using TaskBoard.Application.Abstractions;
@@ -57,32 +60,109 @@ public sealed class AuthControllerTests
         Assert.DoesNotContain("user@example.com", problem.ToString(), StringComparison.OrdinalIgnoreCase);
     }
 
-    private static AuthController CreateController(bool addResult)
+    [Theory]
+    [InlineData(true, true, 200)]
+    [InlineData(true, false, 401)]
+    [InlineData(false, false, 401)]
+    public async Task Login_MapsSuccessAndGenericUnauthorized(
+        bool userExists,
+        bool passwordMatches,
+        int expectedStatus)
     {
-        var useCase = new RegisterUser(
-            new StubUserRepository(addResult),
-            new StubPasswordHasher());
-        return new AuthController(useCase);
+        var user = userExists ? NewUser() : null;
+        var controller = CreateController(true, user, passwordMatches);
+
+        var action = await controller.Login(
+            new LoginRequest("user@example.com", "password"), default);
+
+        var result = Assert.IsAssignableFrom<ObjectResult>(action.Result);
+        Assert.Equal(expectedStatus, result.StatusCode);
+        if (expectedStatus == 200)
+        {
+            Assert.IsType<LoginResponse>(result.Value);
+        }
+        else
+        {
+            var problem = Assert.IsType<ProblemDetails>(result.Value);
+            Assert.Equal("auth.invalid_credentials", problem.Extensions["code"]);
+        }
     }
 
-    private sealed class StubUserRepository(bool addResult) : IUserRepository
+    [Fact]
+    public async Task Me_UsesOnlyAuthenticatedSubjectId()
     {
+        var user = NewUser();
+        var repository = new StubUserRepository(true, user);
+        var controller = CreateController(repository, passwordMatches: true);
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext
+            {
+                User = new ClaimsPrincipal(new ClaimsIdentity(
+                [
+                    new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+                    new Claim(ClaimTypes.Email, "attacker@example.com")
+                ], "Bearer"))
+            }
+        };
+
+        var action = await controller.Me(default);
+
+        var ok = Assert.IsType<OkObjectResult>(action.Result);
+        Assert.Equal(user.Id, Assert.IsType<UserResponse>(ok.Value).Id);
+        Assert.Equal(user.Id, repository.RequestedId);
+    }
+
+    private static AuthController CreateController(
+        bool addResult,
+        UserAccount? user = null,
+        bool passwordMatches = false) =>
+        CreateController(new StubUserRepository(addResult, user), passwordMatches);
+
+    private static AuthController CreateController(
+        StubUserRepository repository,
+        bool passwordMatches)
+    {
+        var hasher = new StubPasswordHasher(passwordMatches);
+        return new AuthController(
+            new RegisterUser(repository, hasher),
+            new LoginUser(repository, hasher, new StubTokenIssuer()),
+            new GetCurrentUser(repository));
+    }
+
+    private static UserAccount NewUser() =>
+        new(Guid.NewGuid(), "user@example.com", "user@example.com", "hash");
+
+    private sealed class StubUserRepository(bool addResult, UserAccount? user = null) : IUserRepository
+    {
+        public Guid? RequestedId { get; private set; }
+
         public Task<UserAccount?> GetByNormalizedEmailAsync(
             string normalizedEmail,
-            CancellationToken cancellationToken) => Task.FromResult<UserAccount?>(null);
+            CancellationToken cancellationToken) => Task.FromResult(user);
 
         public Task<UserAccount?> GetByIdAsync(
             Guid id,
-            CancellationToken cancellationToken) => Task.FromResult<UserAccount?>(null);
+            CancellationToken cancellationToken)
+        {
+            RequestedId = id;
+            return Task.FromResult(user);
+        }
 
         public Task<bool> AddAsync(UserAccount user, CancellationToken cancellationToken) =>
             Task.FromResult(addResult);
     }
 
-    private sealed class StubPasswordHasher : IPasswordHasher
+    private sealed class StubPasswordHasher(bool verifyResult) : IPasswordHasher
     {
         public string Hash(string password) => "hash";
 
-        public bool Verify(string? hash, string suppliedPassword) => false;
+        public bool Verify(string? hash, string suppliedPassword) => verifyResult;
+    }
+
+    private sealed class StubTokenIssuer : IAccessTokenIssuer
+    {
+        public AccessTokenDto Issue(UserAccount user) =>
+            new("token", DateTimeOffset.UtcNow.AddHours(1));
     }
 }

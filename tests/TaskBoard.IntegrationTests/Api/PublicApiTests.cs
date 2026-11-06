@@ -1,21 +1,20 @@
 using System.Net;
 using System.Net.Http.Json;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
+using TaskBoard.IntegrationTests.Support;
 
 namespace TaskBoard.IntegrationTests.Api;
 
-public sealed class PublicApiTests : IClassFixture<WebApplicationFactory<Program>>
+public sealed class PublicApiTests : IClassFixture<PostgresFixture>
 {
     private readonly HttpClient _client;
-    private readonly WebApplicationFactory<Program> _factory;
+    private readonly TaskBoardApiFactory _factory;
 
-    public PublicApiTests(WebApplicationFactory<Program> factory)
+    public PublicApiTests(PostgresFixture postgres)
     {
-        _factory = factory;
-        _client = factory.CreateClient();
+        _factory = new TaskBoardApiFactory(postgres.ConnectionString);
+        _client = _factory.CreateClient();
     }
 
     [Fact]
@@ -30,14 +29,9 @@ public sealed class PublicApiTests : IClassFixture<WebApplicationFactory<Program
     [Fact]
     public void Infrastructure_IsRegisteredOnce()
     {
-        using var factory = _factory.WithWebHostBuilder(builder =>
-            builder.UseSetting(
-                "ConnectionStrings:TaskBoard",
-                "Host=localhost;Database=taskboard;Username=taskboard;Password=test"));
-
         Assert.Same(
-            factory.Services.GetRequiredService<NpgsqlDataSource>(),
-            factory.Services.GetRequiredService<NpgsqlDataSource>());
+            _factory.Services.GetRequiredService<NpgsqlDataSource>(),
+            _factory.Services.GetRequiredService<NpgsqlDataSource>());
     }
 
     private sealed record PingResponse(string Status);

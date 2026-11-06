@@ -26,4 +26,12 @@ public static class ResultMapping
             Title = "Registration could not be completed",
             Extensions = { ["code"] = "auth.registration.conflict" }
         };
+
+    public static ProblemDetails Unauthorized(string code) =>
+        new()
+        {
+            Status = StatusCodes.Status401Unauthorized,
+            Title = "Authentication required",
+            Extensions = { ["code"] = code }
+        };
 }
