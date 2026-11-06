@@ -1,0 +1,9 @@
+.app-header { min-height: 5rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem clamp(1rem, 4vw, 3rem); border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--surface) 90%, transparent); backdrop-filter: blur(14px); }
+.brand { display: inline-flex; align-items: center; gap: .65rem; color: var(--text); font-size: 1.15rem; font-weight: 850; text-decoration: none; }
+.brand-mark { display: grid; width: 2rem; height: 2rem; place-items: center; border-radius: .65rem; background: var(--accent); color: white; }
+nav { display: flex; align-items: center; gap: 1rem; }
+nav a, .text-button { color: var(--text); font: inherit; font-weight: 700; text-decoration: none; }
+.nav-primary { padding: .6rem .85rem; border-radius: .7rem; background: var(--text); color: white !important; }
+.text-button { border: 0; background: transparent; cursor: pointer; }
+.user-email { color: var(--muted); font-size: .9rem; }
+@media (max-width: 36rem) { .user-email { display: none; } nav { gap: .65rem; } }
