@@ -56,6 +56,7 @@ It implements the approved rule that a task may retain an already overdue date, 
 | The generated mobile account navigation needed no extra constraint | Visual inspection at 390 px showed `Sign in` and `Create account` wrapping despite sufficient width | Added a failing computed-style regression test, then applied `white-space: nowrap` | `frontend/taskboard-web/src/app/app.spec.ts`, Task 12 |
 | Angular build code 134 indicated a source failure | The same build stopped before diagnostics inside the process-restricted sandbox | Re-ran the unchanged build in the approved native environment, where it completed; no product code was changed for the environment failure | Final verification on 2026-11-06 |
 | Framework-generated `400` and `401` responses already followed the stable error contract | Final code review found default model binding and JWT challenges lacked stable application codes | Added failing HTTP contract tests, centralized request rejection and JWT challenge Problem Details, then reran all suites | `ErrorContractApiTests`, post-plan review correction |
+| `TaskItem.Rehydrate` could safely trust every caller and persisted value | Architecture review found the public method bypassed identifier, text-length, and status invariants | Added failing domain tests, then validated persisted values while preserving stored text and allowing overdue dates | `TaskItemTests.Rehydrate_*`, 2026-11-06 rehydration correction |
 
 ## Security and edge cases
 

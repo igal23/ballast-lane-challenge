@@ -63,6 +63,20 @@ public sealed class TaskItem
         TaskStatus status,
         DateOnly? dueDate)
     {
+        if (id == Guid.Empty)
+        {
+            throw new DomainValidationException("task.id.required", "id");
+        }
+
+        if (ownerId == Guid.Empty)
+        {
+            throw new DomainValidationException("task.owner_id.required", "ownerId");
+        }
+
+        NormalizeTitle(title);
+        NormalizeDescription(description);
+        ValidateStatus(status);
+
         return new TaskItem(id, ownerId, title, description, status, dueDate);
     }
 

@@ -99,15 +99,75 @@ public sealed class TaskItemTests
         var task = TaskItem.Rehydrate(
             Guid.Parse("11111111-1111-1111-1111-111111111111"),
             Guid.Parse("22222222-2222-2222-2222-222222222222"),
-            "Persisted title",
-            "Persisted description",
+            "  Persisted title  ",
+            "  Persisted description  ",
             DomainTaskStatus.Wip,
             overdueDate);
 
-        Assert.Equal("Persisted title", task.Title);
-        Assert.Equal("Persisted description", task.Description);
+        Assert.Equal("  Persisted title  ", task.Title);
+        Assert.Equal("  Persisted description  ", task.Description);
         Assert.Equal(DomainTaskStatus.Wip, task.Status);
         Assert.Equal(overdueDate, task.DueDate);
+    }
+
+    [Fact]
+    public void Rehydrate_EmptyId_ThrowsRequiredError()
+    {
+        var exception = Assert.Throws<DomainValidationException>(() =>
+            Rehydrate(id: Guid.Empty));
+
+        Assert.Equal("task.id.required", exception.Code);
+        Assert.Equal("id", exception.Field);
+    }
+
+    [Fact]
+    public void Rehydrate_EmptyOwnerId_ThrowsRequiredError()
+    {
+        var exception = Assert.Throws<DomainValidationException>(() =>
+            Rehydrate(ownerId: Guid.Empty));
+
+        Assert.Equal("task.owner_id.required", exception.Code);
+        Assert.Equal("ownerId", exception.Field);
+    }
+
+    [Fact]
+    public void Rehydrate_BlankTitle_ThrowsRequiredError()
+    {
+        var exception = Assert.Throws<DomainValidationException>(() =>
+            Rehydrate(title: "   "));
+
+        Assert.Equal("task.title.required", exception.Code);
+        Assert.Equal("title", exception.Field);
+    }
+
+    [Fact]
+    public void Rehydrate_TitleLongerThan200Characters_ThrowsTooLongError()
+    {
+        var exception = Assert.Throws<DomainValidationException>(() =>
+            Rehydrate(title: new string('x', 201)));
+
+        Assert.Equal("task.title.too_long", exception.Code);
+        Assert.Equal("title", exception.Field);
+    }
+
+    [Fact]
+    public void Rehydrate_DescriptionLongerThan2000Characters_ThrowsTooLongError()
+    {
+        var exception = Assert.Throws<DomainValidationException>(() =>
+            Rehydrate(description: new string('x', 2001)));
+
+        Assert.Equal("task.description.too_long", exception.Code);
+        Assert.Equal("description", exception.Field);
+    }
+
+    [Fact]
+    public void Rehydrate_UndefinedStatus_ThrowsInvalidStatusError()
+    {
+        var exception = Assert.Throws<DomainValidationException>(() =>
+            Rehydrate(status: (DomainTaskStatus)999));
+
+        Assert.Equal("task.status.invalid", exception.Code);
+        Assert.Equal("status", exception.Field);
     }
 
     [Fact]
@@ -211,4 +271,19 @@ public sealed class TaskItemTests
             dueDate,
             Today);
     }
+
+    private static TaskItem Rehydrate(
+        Guid? id = null,
+        Guid? ownerId = null,
+        string title = "Task",
+        string? description = null,
+        DomainTaskStatus status = DomainTaskStatus.Pending,
+        DateOnly? dueDate = null) =>
+        TaskItem.Rehydrate(
+            id ?? Guid.Parse("11111111-1111-1111-1111-111111111111"),
+            ownerId ?? Guid.Parse("22222222-2222-2222-2222-222222222222"),
+            title,
+            description,
+            status,
+            dueDate);
 }
