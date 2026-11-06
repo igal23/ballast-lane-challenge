@@ -5,6 +5,7 @@ using TaskBoard.Application.Abstractions;
 using TaskBoard.Infrastructure.Persistence;
 using TaskBoard.Infrastructure.Security;
 using TaskBoard.Infrastructure.Auth;
+using TaskBoard.Infrastructure.Time;
 
 namespace TaskBoard.Infrastructure;
 
@@ -18,6 +19,7 @@ public static class DependencyInjection
             configuration.GetConnectionString("TaskBoard")!));
         services.AddSingleton<DatabaseMigrator>();
         services.AddScoped<IUserRepository, NpgsqlUserRepository>();
+        services.AddScoped<ITaskRepository, NpgsqlTaskRepository>();
         services.AddSingleton<IPasswordHasher, AspNetPasswordHasher>();
         services.AddOptions<JwtOptions>()
             .Bind(configuration.GetSection(JwtOptions.SectionName))
@@ -28,6 +30,7 @@ public static class DependencyInjection
             .ValidateOnStart();
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton<IAccessTokenIssuer, JwtAccessTokenIssuer>();
+        services.AddSingleton<ICurrentDate, UtcCurrentDate>();
         return services;
     }
 }

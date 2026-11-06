@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using TaskBoard.Application.Auth;
+using TaskBoard.Application.Tasks;
 using TaskBoard.Infrastructure;
 using TaskBoard.Infrastructure.Auth;
 
@@ -14,6 +15,8 @@ builder.Services.AddTaskBoardInfrastructure(builder.Configuration);
 builder.Services.AddScoped<RegisterUser>();
 builder.Services.AddScoped<LoginUser>();
 builder.Services.AddScoped<GetCurrentUser>();
+builder.Services.AddScoped<CreateTask>();
+builder.Services.AddScoped<ListTasks>();
 
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
