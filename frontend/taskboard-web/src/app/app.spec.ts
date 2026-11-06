@@ -25,4 +25,12 @@ describe('App', () => {
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelector('.brand')?.textContent).toContain('TaskBoard');
   });
+
+  it('keeps compact account navigation labels on one line', async () => {
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    const accountLink = (fixture.nativeElement as HTMLElement).querySelector('nav a');
+    expect(getComputedStyle(accountLink!).whiteSpace).toBe('nowrap');
+  });
 });

@@ -54,7 +54,19 @@ export AllowedOrigins__0='https://your-frontend.example'
 
 Startup fails clearly if the connection string, JWT issuer, audience, signing key, or allowed origins are missing. Production secrets must not be committed.
 
-## 3. Smoke test the API
+## 3. Run the Angular client
+
+In a second terminal:
+
+```bash
+cd frontend/taskboard-web
+npm ci
+npm start
+```
+
+Open `http://localhost:4200` and sign in with the demo credentials above. The development server proxies `/api` to `http://localhost:5253`, so the API must be running. Task due dates are date-only values. The server evaluates them in UTC; UI timezone conversion is intentionally outside this MVP.
+
+## 4. Smoke test the API
 
 Ping and register a user:
 
@@ -87,7 +99,7 @@ curl -sS -X POST http://localhost:5253/api/tasks \
   -d '{"title":"Verify local demo","description":null,"status":"Pending","dueDate":null}'
 ```
 
-## 4. Tests and build
+## 5. Tests and build
 
 ```bash
 dotnet test TaskBoard.slnx
@@ -96,9 +108,9 @@ npm test -- --watch=false
 npm run build
 ```
 
-## 5. Reset only this project's database
+## 6. Reset only this project's database
 
-This deletes the TaskBoard Docker volume and all local TaskBoard data:
+This permanently deletes the TaskBoard Docker volume and all local TaskBoard data, then creates a fresh database that Development startup will migrate and seed:
 
 ```bash
 docker compose down -v

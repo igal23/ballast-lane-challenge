@@ -2,7 +2,7 @@
 .brand { display: inline-flex; align-items: center; gap: .65rem; color: var(--text); font-size: 1.15rem; font-weight: 850; text-decoration: none; }
 .brand-mark { display: grid; width: 2rem; height: 2rem; place-items: center; border-radius: .65rem; background: var(--accent); color: white; }
 nav { display: flex; align-items: center; gap: 1rem; }
-nav a, .text-button { color: var(--text); font: inherit; font-weight: 700; text-decoration: none; }
+nav a, .text-button { color: var(--text); font: inherit; font-weight: 700; text-decoration: none; white-space: nowrap; }
 .nav-primary { padding: .6rem .85rem; border-radius: .7rem; background: var(--text); color: white !important; }
 .text-button { border: 0; background: transparent; cursor: pointer; }
 .user-email { color: var(--muted); font-size: .9rem; }
