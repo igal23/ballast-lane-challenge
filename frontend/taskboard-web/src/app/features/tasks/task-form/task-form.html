@@ -1,0 +1,38 @@
+<form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  <div class="field field-wide">
+    <label for="task-title">Title</label>
+    <input id="task-title" formControlName="title" maxlength="200" autocomplete="off" />
+    @if (form.controls.title.touched && form.controls.title.hasError('required')) {
+      <small class="field-error">Title is required.</small>
+    }
+    @if (serverErrors()['title']) {
+      <small class="field-error">{{ serverErrors()['title'] }}</small>
+    }
+  </div>
+
+  <div class="field field-wide">
+    <label for="task-description">Description <span>(optional)</span></label>
+    <textarea id="task-description" formControlName="description" maxlength="2000" rows="3"></textarea>
+  </div>
+
+  <div class="field">
+    <label for="task-status">Status</label>
+    <select id="task-status" formControlName="status">
+      <option value="Pending">Pending</option>
+      <option value="Wip">WIP</option>
+      <option value="Completed">Completed</option>
+    </select>
+  </div>
+
+  <div class="field">
+    <label for="task-due-date">Due date <span>(optional)</span></label>
+    <input id="task-due-date" type="date" formControlName="dueDate" [min]="utcToday" />
+    @if (form.controls.dueDate.hasError('beforeToday') || serverErrors()['dueDate']) {
+      <small class="field-error">{{ serverErrors()['dueDate'] || 'Due date must be today or later.' }}</small>
+    }
+  </div>
+
+  <button type="submit" [disabled]="form.invalid || submitting()">
+    {{ submitting() ? 'Adding task…' : 'Add task' }}
+  </button>
+</form>

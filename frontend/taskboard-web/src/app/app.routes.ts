@@ -13,7 +13,7 @@ export const routes: Routes = [
   {
     path: 'tasks',
     canActivate: [authGuard],
-    loadComponent: () => import('./features/tasks/tasks-placeholder').then((module) => module.TasksPlaceholderComponent),
+    loadComponent: () => import('./features/tasks/task-board/task-board').then((module) => module.TaskBoardComponent),
   },
   { path: '', pathMatch: 'full', redirectTo: 'tasks' },
   { path: '**', redirectTo: 'tasks' },
