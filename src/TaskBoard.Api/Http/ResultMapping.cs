@@ -34,4 +34,12 @@ public static class ResultMapping
             Title = "Authentication required",
             Extensions = { ["code"] = code }
         };
+
+    public static ProblemDetails TaskNotFound() =>
+        new()
+        {
+            Status = StatusCodes.Status404NotFound,
+            Title = "Task not found",
+            Extensions = { ["code"] = "task.not_found" }
+        };
 }

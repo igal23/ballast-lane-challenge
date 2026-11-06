@@ -73,5 +73,8 @@ public sealed class CreateTaskTests
         }
         public Task<IReadOnlyList<TaskItem>> ListAsync(Guid ownerId, CancellationToken cancellationToken) =>
             Task.FromResult<IReadOnlyList<TaskItem>>([]);
+        public Task<TaskItem?> GetAsync(Guid id, Guid ownerId, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public Task<bool> ReplaceAsync(TaskItem task, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public Task<bool> DeleteAsync(Guid id, Guid ownerId, CancellationToken cancellationToken) => throw new NotSupportedException();
     }
 }

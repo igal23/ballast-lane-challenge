@@ -55,6 +55,38 @@ public sealed class NpgsqlTaskRepositoryTests : IClassFixture<PostgresFixture>
         Assert.Empty(await repository.ListAsync(Guid.NewGuid(), default));
     }
 
+    [Fact]
+    public async Task GetReplaceDelete_RequireMatchingOwnerAndPersistLastWriteWins()
+    {
+        await using var dataSource = NpgsqlDataSource.Create(_postgres.ConnectionString);
+        await new DatabaseMigrator(dataSource).MigrateAsync(default);
+        var owner = await AddOwner(dataSource);
+        var otherOwner = await AddOwner(dataSource);
+        var repository = new NpgsqlTaskRepository(dataSource);
+        var task = NewTask(owner, DomainTaskStatus.Pending, null);
+        await repository.AddAsync(task, default);
+
+        Assert.Null(await repository.GetAsync(task.Id, otherOwner, default));
+        var foreignReplacement = TaskItem.Rehydrate(
+            task.Id, otherOwner, "Foreign", null, DomainTaskStatus.Completed, null);
+        Assert.False(await repository.ReplaceAsync(foreignReplacement, default));
+        Assert.Equal(task.Title, (await repository.GetAsync(task.Id, owner, default))!.Title);
+
+        task.Replace("First write", null, DomainTaskStatus.Wip, null, new DateOnly(2026, 11, 6));
+        Assert.True(await repository.ReplaceAsync(task, default));
+        task.Replace("Last write", "Saved", DomainTaskStatus.Completed, null, new DateOnly(2026, 11, 6));
+        Assert.True(await repository.ReplaceAsync(task, default));
+        var saved = await repository.GetAsync(task.Id, owner, default);
+        Assert.Equal("Last write", saved!.Title);
+        Assert.Equal("Saved", saved.Description);
+        Assert.Equal(DomainTaskStatus.Completed, saved.Status);
+
+        Assert.False(await repository.DeleteAsync(task.Id, otherOwner, default));
+        Assert.NotNull(await repository.GetAsync(task.Id, owner, default));
+        Assert.True(await repository.DeleteAsync(task.Id, owner, default));
+        Assert.Null(await repository.GetAsync(task.Id, owner, default));
+    }
+
     private static TaskItem NewTask(Guid owner, DomainTaskStatus status, DateOnly? dueDate) =>
         TaskItem.Rehydrate(Guid.NewGuid(), owner, Guid.NewGuid().ToString(), null, status, dueDate);
 

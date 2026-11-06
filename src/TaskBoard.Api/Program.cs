@@ -17,13 +17,16 @@ builder.Services.AddScoped<LoginUser>();
 builder.Services.AddScoped<GetCurrentUser>();
 builder.Services.AddScoped<CreateTask>();
 builder.Services.AddScoped<ListTasks>();
+builder.Services.AddScoped<GetTask>();
+builder.Services.AddScoped<ReplaceTask>();
+builder.Services.AddScoped<DeleteTask>();
 
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer();
 builder.Services
     .AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
-    .Configure<IOptions<JwtOptions>>((options, jwtOptions) =>
+    .Configure<IOptions<JwtOptions>, TimeProvider>((options, jwtOptions, timeProvider) =>
     {
         var jwt = jwtOptions.Value;
         options.MapInboundClaims = false;
@@ -36,7 +39,18 @@ builder.Services
             ValidateIssuerSigningKey = true,
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt.SigningKey)),
             ValidateLifetime = true,
-            ClockSkew = TimeSpan.FromSeconds(30)
+            ClockSkew = TimeSpan.FromSeconds(30),
+            LifetimeValidator = (notBefore, expires, _, parameters) =>
+            {
+                if (expires is null)
+                {
+                    return false;
+                }
+
+                var utcNow = timeProvider.GetUtcNow().UtcDateTime;
+                return (notBefore is null || notBefore <= utcNow + parameters.ClockSkew)
+                    && expires >= utcNow - parameters.ClockSkew;
+            }
         };
     });
 

@@ -32,5 +32,8 @@ public sealed class ListTasksTests
             RequestedOwnerId = ownerId;
             return Task.FromResult(tasks);
         }
+        public Task<TaskItem?> GetAsync(Guid id, Guid ownerId, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public Task<bool> ReplaceAsync(TaskItem task, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public Task<bool> DeleteAsync(Guid id, Guid ownerId, CancellationToken cancellationToken) => throw new NotSupportedException();
     }
 }
