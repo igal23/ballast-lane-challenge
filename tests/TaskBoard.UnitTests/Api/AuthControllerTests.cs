@@ -21,8 +21,9 @@ public sealed class AuthControllerTests
             new RegisterRequest("user@example.com", new string('p', 15)),
             default);
 
-        var created = Assert.IsType<CreatedResult>(action.Result);
+        var created = Assert.IsAssignableFrom<ObjectResult>(action.Result);
         Assert.Equal(201, created.StatusCode);
+        Assert.IsNotType<CreatedResult>(created);
         var response = Assert.IsType<RegisterResponse>(created.Value);
         Assert.Equal("user@example.com", response.Email);
         Assert.NotEqual(Guid.Empty, response.Id);
@@ -40,6 +41,7 @@ public sealed class AuthControllerTests
         var badRequest = Assert.IsType<BadRequestObjectResult>(action.Result);
         var problem = Assert.IsType<ProblemDetails>(badRequest.Value);
         Assert.Equal(400, problem.Status);
+        Assert.Equal("validation.failed", problem.Extensions["code"]);
         var errors = Assert.IsAssignableFrom<IReadOnlyList<ApiError>>(problem.Extensions["errors"]);
         Assert.Contains(errors, error => error.Code == "auth.email.invalid" && error.Field == "email");
     }

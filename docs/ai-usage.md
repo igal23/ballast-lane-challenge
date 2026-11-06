@@ -55,6 +55,7 @@ It implements the approved rule that a task may retain an already overdue date, 
 | A fixed test clock would automatically control IdentityModel lifetime validation | Expired-token tests showed validation still consulted another clock | Added an explicit lifetime validator using the injected `TimeProvider` and preserved normal issuer, audience, signature, and skew checks | Task 7 tests, commit `114019d` |
 | The generated mobile account navigation needed no extra constraint | Visual inspection at 390 px showed `Sign in` and `Create account` wrapping despite sufficient width | Added a failing computed-style regression test, then applied `white-space: nowrap` | `frontend/taskboard-web/src/app/app.spec.ts`, Task 12 |
 | Angular build code 134 indicated a source failure | The same build stopped before diagnostics inside the process-restricted sandbox | Re-ran the unchanged build in the approved native environment, where it completed; no product code was changed for the environment failure | Final verification on 2026-11-06 |
+| Framework-generated `400` and `401` responses already followed the stable error contract | Final code review found default model binding and JWT challenges lacked stable application codes | Added failing HTTP contract tests, centralized request rejection and JWT challenge Problem Details, then reran all suites | `ErrorContractApiTests`, post-plan review correction |
 
 ## Security and edge cases
 
@@ -74,9 +75,9 @@ Fresh evidence recorded on 2026-11-06:
 | --- | --- |
 | `PATH="/Applications/Docker.app/Contents/Resources/bin:$PATH" bash scripts/check-prereqs.sh` | .NET 10.0.301, Node 26.13.0, Docker Compose available |
 | `docker compose down -v`, `docker compose up -d`, `docker compose ps` | TaskBoard-only volume recreated; PostgreSQL 17 reported healthy |
-| `dotnet test TaskBoard.slnx` | 52 unit tests and 34 integration tests passed; 0 failed, 0 skipped |
-| `npm test -- --watch=false` | Final run: 9 files and 28 tests passed; 0 failed |
+| `dotnet test TaskBoard.slnx` | Final run: 52 unit tests and 36 integration tests passed; 0 failed, 0 skipped |
+| `npm test -- --watch=false` | Final run: 9 files and 29 tests passed; 0 failed |
 | Focused mobile navigation RED/GREEN | 1 failing computed-style assertion, then 3 of 3 app tests passed |
-| `npm run build` | Final production bundle completed; initial 266.01 kB, estimated transfer 72.53 kB |
+| `npm run build` | Final production bundle completed; initial 266.01 kB, estimated transfer 72.52 kB |
 | Local API demo path | Ping, seeded login, `/me`, seeded list, create, read, WIP replacement, completion, delete, past date rejection, invalid JWT, duplicate registration, and three cross-user isolation checks all returned expected statuses |
 | Browser inspection | Login, registration, board, edit state, desktop layout, 390 by 844 mobile layout, keyboard focus, and browser warning/error console checked; console was empty |

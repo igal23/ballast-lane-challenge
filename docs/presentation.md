@@ -28,7 +28,7 @@ Use as a speaking guide, not a full slide deck. Target a concise introduction an
 - Show the mobile navigation regression: computed style was `normal`, the test failed, CSS changed to `nowrap`, then the focused test passed.
 - Unit tests cover domain behavior, application workflows, and controller mapping.
 - Integration tests use real PostgreSQL through Testcontainers and exercise the hosted API.
-- Final evidence: 52 unit, 34 integration, and 28 Angular tests after the responsive regression, plus a successful production build.
+- Final evidence: 52 unit, 36 integration, and 29 Angular tests after review corrections, plus a successful production build.
 
 ## 5. Critical GenAI usage
 

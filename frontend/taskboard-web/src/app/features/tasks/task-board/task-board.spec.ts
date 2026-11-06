@@ -174,4 +174,39 @@ describe('TaskBoardComponent', () => {
     expect(service.listCalls).toBe(2);
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('no longer exists');
   });
+
+  it('preserves API ordering after creation and a status-changing replacement', async () => {
+    await createFixture();
+    const completed: TaskItem = {
+      id: 'cccccccc-cccc-cccc-cccc-cccccccccccc',
+      title: 'Completed without date', description: null, status: 'Completed', dueDate: null,
+    };
+    const pending: TaskItem = {
+      id: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+      title: 'Pending without date', description: null, status: 'Pending', dueDate: null,
+    };
+    const newCompleted: TaskItem = {
+      id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+      title: 'Completed with date', description: null, status: 'Completed', dueDate: '2026-11-08',
+    };
+    service.listResult = of([pending, completed]);
+    service.createResult = of(newCompleted);
+    fixture.detectChanges();
+
+    fixture.componentInstance.save({
+      title: newCompleted.title, description: null, status: 'Completed', dueDate: '2026-11-08',
+    });
+    expect(fixture.componentInstance.tasks().map((task) => task.id)).toEqual([
+      pending.id, newCompleted.id, completed.id,
+    ]);
+
+    service.replaceResult = of({ ...pending, status: 'Completed' });
+    fixture.componentInstance.edit(pending);
+    fixture.componentInstance.save({
+      title: pending.title, description: null, status: 'Completed', dueDate: null,
+    });
+    expect(fixture.componentInstance.tasks().map((task) => task.id)).toEqual([
+      newCompleted.id, pending.id, completed.id,
+    ]);
+  });
 });

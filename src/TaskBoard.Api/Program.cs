@@ -1,17 +1,24 @@
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Cors.Infrastructure;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using TaskBoard.Application.Auth;
 using TaskBoard.Application.Tasks;
 using TaskBoard.Api.Configuration;
+using TaskBoard.Api.Http;
 using TaskBoard.Infrastructure;
 using TaskBoard.Infrastructure.Auth;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
+builder.Services.Configure<ApiBehaviorOptions>(options =>
+{
+    options.InvalidModelStateResponseFactory = context =>
+        new BadRequestObjectResult(ResultMapping.InvalidRequest(context.ModelState.Keys));
+});
 builder.Services.AddOpenApi();
 builder.Services.AddOptions<AllowedOriginsOptions>()
     .Configure(options =>
@@ -48,6 +55,19 @@ builder.Services
     {
         var jwt = jwtOptions.Value;
         options.MapInboundClaims = false;
+        options.Events = new JwtBearerEvents
+        {
+            OnChallenge = async context =>
+            {
+                context.HandleResponse();
+                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                await context.Response.WriteAsJsonAsync(
+                    ResultMapping.Unauthorized("auth.unauthorized"),
+                    options: null,
+                    contentType: "application/problem+json",
+                    cancellationToken: context.HttpContext.RequestAborted);
+            }
+        };
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,

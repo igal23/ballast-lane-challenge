@@ -13,8 +13,25 @@ public static class ResultMapping
             Title = "Validation failed",
             Extensions =
             {
+                ["code"] = "validation.failed",
                 ["errors"] = errors
                     .Select(error => new ApiError(error.Code, error.Field))
+                    .ToArray()
+            }
+        };
+
+    public static ProblemDetails InvalidRequest(IEnumerable<string> fields) =>
+        new()
+        {
+            Status = StatusCodes.Status400BadRequest,
+            Title = "Request could not be processed",
+            Extensions =
+            {
+                ["code"] = "request.invalid",
+                ["errors"] = fields
+                    .Where(field => !string.IsNullOrWhiteSpace(field))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .Select(field => new ApiError("request.invalid", NormalizeField(field)))
                     .ToArray()
             }
         };
@@ -42,4 +59,11 @@ public static class ResultMapping
             Title = "Task not found",
             Extensions = { ["code"] = "task.not_found" }
         };
+
+    private static string? NormalizeField(string field) => field switch
+    {
+        "$" => null,
+        _ when field.StartsWith("$.", StringComparison.Ordinal) => field[2..],
+        _ => field
+    };
 }

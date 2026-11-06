@@ -28,6 +28,7 @@ public sealed class RegistrationApiTests : IClassFixture<PostgresFixture>
             new { Email = $"  {email}  ", Password = password });
 
         Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+        Assert.Null(created.Headers.Location);
         var createdBody = await created.Content.ReadAsStringAsync();
         var response = await created.Content.ReadFromJsonAsync<RegisterResponse>();
         Assert.NotNull(response);

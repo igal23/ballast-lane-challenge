@@ -7,6 +7,19 @@ import { TaskFormComponent } from '../task-form/task-form';
 
 interface ApiFieldError { code?: string; field?: string; }
 
+function sortTasks(tasks: TaskItem[]): TaskItem[] {
+  return [...tasks].sort((left, right) => {
+    const completionOrder = Number(left.status === 'Completed') - Number(right.status === 'Completed');
+    if (completionOrder !== 0) return completionOrder;
+    if (left.dueDate !== right.dueDate) {
+      if (left.dueDate === null) return 1;
+      if (right.dueDate === null) return -1;
+      return left.dueDate.localeCompare(right.dueDate);
+    }
+    return left.id.localeCompare(right.id);
+  });
+}
+
 @Component({
   selector: 'app-task-board',
   imports: [TaskFormComponent],
@@ -50,9 +63,9 @@ export class TaskBoardComponent implements OnInit {
       : this.tasksApi.create(request);
     operation.pipe(finalize(() => this.submitting.set(false))).subscribe({
       next: (task) => {
-        this.tasks.update((tasks) => editing
+        this.tasks.update((tasks) => sortTasks(editing
           ? tasks.map((current) => current.id === task.id ? task : current)
-          : [task, ...tasks]);
+          : [task, ...tasks]));
         this.editing.set(null);
         this.form().reset();
       },

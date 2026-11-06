@@ -25,9 +25,9 @@ public sealed class AuthController(
 
         return result.Outcome switch
         {
-            Outcome.Success => Created(
-                $"/api/users/{result.Value!.Id}",
-                new RegisterResponse(result.Value.Id, result.Value.Email)),
+            Outcome.Success => StatusCode(
+                StatusCodes.Status201Created,
+                new RegisterResponse(result.Value!.Id, result.Value.Email)),
             Outcome.ValidationError => BadRequest(result.Errors.ToValidationProblem()),
             Outcome.Conflict => Conflict(ResultMapping.RegistrationConflict()),
             _ => throw new InvalidOperationException($"Unsupported outcome: {result.Outcome}")
