@@ -77,6 +77,66 @@ describe('TaskBoardComponent', () => {
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('Unable to load tasks');
   });
 
+  it('renders ordered native status accordions open by default and keeps empty groups visible', async () => {
+    await createFixture();
+    const wipTask: TaskItem = {
+      ...existingTask,
+      id: '22222222-2222-2222-2222-222222222222',
+      title: 'Work in progress',
+      status: 'Wip',
+    };
+    service.listResult = of([existingTask, wipTask]);
+
+    fixture.detectChanges();
+
+    const groups = Array.from(
+      (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLDetailsElement>('details.status-group'),
+    );
+    expect(groups).toHaveLength(3);
+    expect(groups.map((group) => group.dataset['status'])).toEqual(['Pending', 'Wip', 'Completed']);
+    expect(groups.every((group) => group.open)).toBe(true);
+    expect(groups.map((group) => group.querySelector('.status-group-title')?.textContent?.trim()))
+      .toEqual(['Pending', 'WIP', 'Completed']);
+    expect(groups.map((group) => group.querySelector('.status-group-count')?.textContent?.trim()))
+      .toEqual(['1', '1', '0']);
+    expect(groups[2].textContent).toContain('No completed tasks.');
+
+    groups[0].open = false;
+    expect(groups.map((group) => group.open)).toEqual([false, true, true]);
+  });
+
+  it('moves a replaced task between groups without reopening another status group', async () => {
+    await createFixture();
+    service.listResult = of([existingTask]);
+    service.replaceResult = of({ ...existingTask, status: 'Completed' });
+    fixture.detectChanges();
+
+    const root = fixture.nativeElement as HTMLElement;
+    const initialWipGroup = root.querySelector<HTMLDetailsElement>("details.status-group[data-status='Wip']")!;
+    initialWipGroup.open = false;
+
+    fixture.componentInstance.edit(existingTask);
+    fixture.componentInstance.save({
+      title: existingTask.title,
+      description: null,
+      status: 'Completed',
+      dueDate: null,
+    });
+    fixture.detectChanges();
+
+    const pendingGroup = root.querySelector<HTMLDetailsElement>("details.status-group[data-status='Pending']")!;
+    const currentWipGroup = root.querySelector<HTMLDetailsElement>("details.status-group[data-status='Wip']")!;
+    const completedGroup = root.querySelector<HTMLDetailsElement>("details.status-group[data-status='Completed']")!;
+    expect(currentWipGroup).toBe(initialWipGroup);
+    expect(currentWipGroup.open).toBe(false);
+    expect([pendingGroup, currentWipGroup, completedGroup].map((group) =>
+      group.querySelector('.status-group-count')?.textContent?.trim())).toEqual(['0', '0', '1']);
+    expect(pendingGroup.querySelectorAll('.task-card')).toHaveLength(0);
+    expect(currentWipGroup.querySelectorAll('.task-card')).toHaveLength(0);
+    expect(completedGroup.querySelectorAll('.task-card')).toHaveLength(1);
+    expect(completedGroup.textContent).toContain(existingTask.title);
+  });
+
   it('inserts a successful create, resets the form, and blocks duplicate submissions', async () => {
     await createFixture();
     const pending = new Subject<TaskItem>();

@@ -15,7 +15,21 @@ h2 { margin: 0 0 1rem; }
 .empty { padding: 2.5rem 1rem; text-align: center; }
 .empty h3, .empty p { margin: .25rem; }
 .empty p { color: var(--muted); }
+.status-groups { display: grid; gap: 1rem; }
+.empty + .status-groups { margin-top: 1rem; }
+.status-group { --group-accent: #75877b; overflow: clip; border: 1px solid var(--line); border-left: .3rem solid var(--group-accent); border-radius: .9rem; background: color-mix(in srgb, var(--surface) 94%, var(--group-accent)); }
+.status-group[data-status='Wip'] { --group-accent: #c18a08; }
+.status-group[data-status='Completed'] { --group-accent: #25845f; }
+.status-group > summary { display: flex; align-items: center; gap: .7rem; padding: 1rem 1.15rem; list-style: none; color: var(--text); cursor: pointer; font-weight: 800; }
+.status-group > summary::-webkit-details-marker { display: none; }
+.status-group > summary::before { content: '›'; color: var(--group-accent); font-size: 1.5rem; line-height: .7; transform-origin: center; transition: transform 120ms ease; }
+.status-group[open] > summary::before { transform: rotate(90deg); }
+.status-group > summary:focus-visible { outline: .2rem solid color-mix(in srgb, var(--group-accent) 45%, transparent); outline-offset: -.2rem; }
+.status-group-title { font-size: 1.05rem; }
+.status-group-count { display: inline-grid; min-width: 1.75rem; min-height: 1.75rem; margin-left: auto; place-items: center; border-radius: 999px; background: color-mix(in srgb, var(--group-accent) 14%, var(--surface)); color: color-mix(in srgb, var(--group-accent) 75%, var(--text)); font-size: .8rem; }
+.status-group-empty { margin: 0; padding: 0 1.15rem 1.15rem 3rem; color: var(--muted); }
 .task-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr)); gap: 1rem; }
+.status-group .task-grid { padding: 0 1rem 1rem; }
 .task-card { min-width: 0; padding: 1.15rem; border: 1px solid var(--line); border-radius: .9rem; background: var(--surface); }
 .task-card h3 { margin: 0; overflow-wrap: anywhere; }
 .task-card > p { color: var(--muted); }

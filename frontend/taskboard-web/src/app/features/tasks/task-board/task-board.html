@@ -33,31 +33,46 @@
         <p>Unable to load tasks.</p>
         <button type="button" (click)="load()">Try again</button>
       </div>
-    } @else if (tasks().length === 0) {
-      <div class="notice empty"><h3>No tasks yet</h3><p>Add the first task above.</p></div>
     } @else {
-      <div class="task-grid">
-        @for (task of tasks(); track task.id) {
-          <article class="task-card">
-            <div class="task-card-heading">
-              <h3>{{ task.title }}</h3>
-              <span class="status" [attr.data-status]="task.status">{{ task.status === 'Wip' ? 'WIP' : task.status }}</span>
-            </div>
-            @if (task.description) { <p>{{ task.description }}</p> }
-            <p class="due">{{ task.dueDate ? 'Due ' + task.dueDate : 'No due date' }}</p>
-            <div class="card-actions">
-              <button type="button" (click)="edit(task)" [disabled]="submitting() || deletingId() === task.id">Edit</button>
-              @if (pendingDeleteId() === task.id) {
-                <span>Delete this task?</span>
-                <button type="button" class="danger" (click)="confirmDelete(task.id)" [disabled]="deletingId() === task.id">
-                  {{ deletingId() === task.id ? 'Deleting…' : 'Confirm delete' }}
-                </button>
-                <button type="button" (click)="cancelDelete()" [disabled]="deletingId() === task.id">Cancel</button>
-              } @else {
-                <button type="button" class="danger-link" (click)="requestDelete(task.id)">Delete</button>
-              }
-            </div>
-          </article>
+      @if (tasks().length === 0) {
+        <div class="notice empty"><h3>No tasks yet</h3><p>Add the first task above.</p></div>
+      }
+      <div class="status-groups">
+        @for (group of taskGroups(); track group.status) {
+          <details class="status-group" [attr.data-status]="group.status" open>
+            <summary>
+              <span class="status-group-title">{{ group.label }}</span>
+              <span class="status-group-count">{{ group.tasks.length }}</span>
+            </summary>
+            @if (group.tasks.length === 0) {
+              <p class="status-group-empty">{{ group.emptyMessage }}</p>
+            } @else {
+              <div class="task-grid">
+                @for (task of group.tasks; track task.id) {
+                  <article class="task-card">
+                    <div class="task-card-heading">
+                      <h3>{{ task.title }}</h3>
+                      <span class="status" [attr.data-status]="task.status">{{ task.status === 'Wip' ? 'WIP' : task.status }}</span>
+                    </div>
+                    @if (task.description) { <p>{{ task.description }}</p> }
+                    <p class="due">{{ task.dueDate ? 'Due ' + task.dueDate : 'No due date' }}</p>
+                    <div class="card-actions">
+                      <button type="button" (click)="edit(task)" [disabled]="submitting() || deletingId() === task.id">Edit</button>
+                      @if (pendingDeleteId() === task.id) {
+                        <span>Delete this task?</span>
+                        <button type="button" class="danger" (click)="confirmDelete(task.id)" [disabled]="deletingId() === task.id">
+                          {{ deletingId() === task.id ? 'Deleting…' : 'Confirm delete' }}
+                        </button>
+                        <button type="button" (click)="cancelDelete()" [disabled]="deletingId() === task.id">Cancel</button>
+                      } @else {
+                        <button type="button" class="danger-link" (click)="requestDelete(task.id)">Delete</button>
+                      }
+                    </div>
+                  </article>
+                }
+              </div>
+            }
+          </details>
         }
       </div>
     }

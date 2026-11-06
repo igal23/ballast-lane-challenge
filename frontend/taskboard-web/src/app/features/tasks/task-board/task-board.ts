@@ -1,11 +1,18 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, OnInit, inject, signal, viewChild } from '@angular/core';
+import { Component, OnInit, computed, inject, signal, viewChild } from '@angular/core';
 import { finalize } from 'rxjs';
-import { TaskItem, TaskWriteRequest } from '../../../core/tasks/task.models';
+import { TaskItem, TaskStatus, TaskWriteRequest } from '../../../core/tasks/task.models';
 import { TaskService } from '../../../core/tasks/task.service';
 import { TaskFormComponent } from '../task-form/task-form';
 
 interface ApiFieldError { code?: string; field?: string; }
+
+interface TaskStatusGroup {
+  status: TaskStatus;
+  label: string;
+  tasks: readonly TaskItem[];
+  emptyMessage: string;
+}
 
 function sortTasks(tasks: TaskItem[]): TaskItem[] {
   return [...tasks].sort((left, right) => {
@@ -30,6 +37,29 @@ export class TaskBoardComponent implements OnInit {
   private readonly tasksApi = inject(TaskService);
   readonly form = viewChild.required(TaskFormComponent);
   readonly tasks = signal<TaskItem[]>([]);
+  readonly taskGroups = computed<readonly TaskStatusGroup[]>(() => {
+    const tasks = this.tasks();
+    return [
+      {
+        status: 'Pending',
+        label: 'Pending',
+        tasks: tasks.filter((task) => task.status === 'Pending'),
+        emptyMessage: 'No pending tasks.',
+      },
+      {
+        status: 'Wip',
+        label: 'WIP',
+        tasks: tasks.filter((task) => task.status === 'Wip'),
+        emptyMessage: 'No work in progress tasks.',
+      },
+      {
+        status: 'Completed',
+        label: 'Completed',
+        tasks: tasks.filter((task) => task.status === 'Completed'),
+        emptyMessage: 'No completed tasks.',
+      },
+    ];
+  });
   readonly loading = signal(true);
   readonly loadError = signal(false);
   readonly submitting = signal(false);
