@@ -24,6 +24,7 @@ public sealed class ErrorContractApiTests : IClassFixture<PostgresFixture>
 
         var response = await client.GetAsync("/api/auth/me");
 
+        Assert.Equal("Bearer", Assert.Single(response.Headers.WwwAuthenticate).Scheme);
         await AssertProblem(response, HttpStatusCode.Unauthorized, "auth.unauthorized");
     }
 

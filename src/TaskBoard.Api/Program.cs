@@ -61,6 +61,7 @@ builder.Services
             {
                 context.HandleResponse();
                 context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                context.Response.Headers.WWWAuthenticate = JwtBearerDefaults.AuthenticationScheme;
                 await context.Response.WriteAsJsonAsync(
                     ResultMapping.Unauthorized("auth.unauthorized"),
                     options: null,
