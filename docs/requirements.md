@@ -4,20 +4,20 @@ This is an implementation checklist, not a new specification. See `assignment-or
 
 ## Must-have
 
-- [ ] ASP.NET Core Web API controllers with complete task CRUD (`GET`, `POST`, `PUT/PATCH`, `DELETE`).
-- [ ] Users persist in a separate PostgreSQL table; registration/login persist and validate identities.
-- [ ] Task fields: primary key, title, description, status, due date and owner ID.
-- [ ] API includes public and protected endpoints, with appropriate response codes.
-- [ ] Business logic and validation independent of API and database implementation.
-- [ ] PostgreSQL accessed using **raw Npgsql**, without EF, Dapper or mediator libraries.
-- [ ] Password hashes, parameterized SQL and strict task ownership checks.
-- [ ] Seeded Development-only user with credentials documented in README, plus sample tasks.
-- [ ] Responsive Angular UI with login and CRUD; clean components/state.
-- [ ] Unit tests for domain/application and API/controller behavior.
-- [ ] Real PostgreSQL integration tests for repositories and API integration coverage.
-- [ ] Clear README with exact local run/test instructions.
-- [ ] Actual GenAI prompt, representative output, validation and corrections documented.
-- [ ] English presentation explaining user story, architecture, trade-offs, code, tests and AI process.
+- [x] ASP.NET Core Web API controllers with complete task CRUD (`GET`, `POST`, `PUT/PATCH`, `DELETE`).
+- [x] Users persist in a separate PostgreSQL table; registration/login persist and validate identities.
+- [x] Task fields: primary key, title, description, status, due date and owner ID.
+- [x] API includes public and protected endpoints, with appropriate response codes.
+- [x] Business logic and validation independent of API and database implementation.
+- [x] PostgreSQL accessed using **raw Npgsql**, without EF, Dapper or mediator libraries.
+- [x] Password hashes, parameterized SQL and strict task ownership checks.
+- [x] Seeded Development-only user with credentials documented in README, plus sample tasks.
+- [x] Responsive Angular UI with login and CRUD; clean components/state.
+- [x] Unit tests for domain/application and API/controller behavior.
+- [x] Real PostgreSQL integration tests for repositories and API integration coverage.
+- [x] Clear README with exact local run/test instructions.
+- [x] Actual GenAI prompts, representative output, validation and corrections documented.
+- [x] English presentation explaining user story, architecture, trade-offs, code, tests and AI process.
 
 ## API contract - starting point, finalize during brainstorming
 
@@ -33,14 +33,14 @@ This is an implementation checklist, not a new specification. See `assignment-or
 
 ## Required edge cases
 
-- [ ] Duplicate email handled deterministically.
-- [ ] Invalid password does not authenticate.
-- [ ] Missing/invalid JWT rejected.
-- [ ] Task belonging to another user cannot be viewed/modified/deleted; avoid revealing its existence.
-- [ ] Invalid title, status, and due date handled consistently.
-- [ ] Invalid or unknown task ID handled consistently.
-- [ ] Empty list is valid; deletion is persistent.
-- [ ] SQL parameters are used for ALL user-influenced values.
+- [x] Duplicate email handled deterministically.
+- [x] Invalid password does not authenticate.
+- [x] Missing/invalid JWT rejected.
+- [x] Task belonging to another user cannot be viewed/modified/deleted; avoid revealing its existence.
+- [x] Invalid title, status, and due date handled consistently.
+- [x] Invalid or unknown task ID handled consistently.
+- [x] Empty list is valid; deletion is persistent.
+- [x] SQL parameters are used for ALL user-influenced values.
 
 ## Scope boundaries
 

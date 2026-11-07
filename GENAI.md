@@ -1,231 +1,175 @@
 # Generative AI Usage
 
-## 1. AI Tool and Approach
+## Tool and working method
 
 **Tool:** OpenAI Codex with the Superpowers development workflow.
 
-I used Codex as a development assistant to accelerate scaffolding, implementation, testing, and code review.
+I used Codex to help design, plan, implement, test, review, and document TaskBoard. I did not ask it to generate the application in one unreviewed pass. The workflow was:
 
-My approach was to define the architectural constraints and expected behavior first, then use AI to implement small, independently testable features.
+1. Establish requirements and technical constraints.
+2. Review and approve the design before implementation.
+3. Break the implementation into small vertical slices.
+4. Apply RED-GREEN TDD to business behavior and regressions.
+5. Commit each task only after its tests passed.
+6. Run unit, API, PostgreSQL integration, frontend, build, and browser checks.
+7. Correct generated assumptions when evidence showed they were wrong.
 
-Rather than generating the entire application in a single step, I followed an iterative process:
+## Prompts used
 
-1. Define requirements and architecture.
-2. Generate an implementation plan.
-3. Implement features using Test-Driven Development (TDD).
-4. Review the generated code and run automated tests.
-5. Refactor and address issues identified during validation.
+The initial design prompt was:
 
-The objective was to use AI to accelerate development while maintaining control over architectural and technical decisions.
-
-## 2. Prompt Used for API Generation
-
+```text
 Use Superpowers brainstorming to design TaskBoard based on the repository requirements and existing decisions.
+
 Focus on:
+
 - Clean Architecture dependency boundaries
 - Domain model, validation and meaningful business rules
 - REST endpoints, JWT authentication and per-user task isolation
 - PostgreSQL persistence using Npgsql directly
 - TDD, unit tests, API and database integration tests
 - Security, edge cases and local demo readiness
+
 Keep the MVP small and maintainable. Do not reopen recorded technical choices without a concrete reason.
+
 Create a concise design document under docs/ and update decisions only when needed.
 Do not implement application code yet. Stop for my design approval.
 ```
 
-## 3. Representative Generated Code
+After design approval, the implementation-planning prompt was:
 
-The following examples illustrate the intended implementation, including authorization, separation of concerns, and safe database access.
+```text
+Use Superpowers writing-plans to create an implementation plan based on the approved design.
 
-### API Controller
+Break the work into small, independently testable vertical slices, following TDD.
+```
 
-The controller handles HTTP requests while delegating business logic to the application layer.
+The execution constraints were:
+
+```text
+lets do native, but use superpowers:test-driven-development. Red-Green flow
+for each task, do a commit
+commit only when the task is verified with a test
+```
+
+This staged prompt sequence generated the implementation through reviewed, testable slices rather than treating AI output as authoritative.
+
+## Representative generated code
+
+### Controller delegates to an explicit use case
+
+The actual task controller obtains the owner only from the authenticated subject and delegates creation to the Application layer:
 
 ```csharp
 [ApiController]
 [Authorize]
 [Route("api/tasks")]
-public class TasksController : ControllerBase
+public sealed class TasksController(
+    CreateTask createTask,
+    ListTasks listTasks,
+    GetTask getTask,
+    ReplaceTask replaceTask,
+    DeleteTask deleteTask) : ControllerBase
 {
-    private readonly ITaskService _taskService;
-
-    public TasksController(ITaskService taskService)
+    [HttpPost]
+    public async Task<ActionResult<TaskResponse>> Create(
+        TaskWriteRequest request,
+        CancellationToken cancellationToken)
     {
-        _taskService = taskService;
-    }
+        if (!User.TryGetSubjectId(out var ownerId))
+        {
+            return Unauthorized(ResultMapping.Unauthorized("auth.unauthorized"));
+        }
 
-    [HttpGet("{id:guid}")]
-    public async Task<IActionResult> GetById(Guid id)
-    {
-        var userId = User.FindFirstValue(
-            ClaimTypes.NameIdentifier);
+        var result = await createTask.ExecuteAsync(
+            ownerId,
+            new TaskWriteCommand(request.Title, request.Description, request.Status, request.DueDate),
+            cancellationToken);
 
-        if (!Guid.TryParse(userId, out var ownerId))
-            return Unauthorized();
-
-        var task = await _taskService.GetByIdAsync(
-            id, ownerId);
-
-        return task is null ? NotFound() : Ok(task);
+        return result.Outcome switch
+        {
+            Outcome.Success => Created(
+                $"/api/tasks/{result.Value!.Id}",
+                ToResponse(result.Value)),
+            Outcome.ValidationError => BadRequest(result.Errors.ToValidationProblem()),
+            _ => throw new InvalidOperationException($"Unsupported outcome: {result.Outcome}")
+        };
     }
 }
 ```
 
-### Data Access Layer
+### Npgsql repository enforces ownership and parameterizes values
 
-The repository uses Npgsql directly, without an ORM.
+The actual repository uses the schema's `owner_id` column and typed parameters:
 
 ```csharp
-public async Task<TaskItem?> GetByIdAsync(
-    Guid taskId,
-    Guid userId)
+public async Task<TaskItem?> GetAsync(
+    Guid id,
+    Guid ownerId,
+    CancellationToken cancellationToken)
 {
-    const string sql = """
-        SELECT id, title, description, status, due_date
+    await using var command = dataSource.CreateCommand(
+        """
+        SELECT id, owner_id, title, description, status, due_date
         FROM tasks
-        WHERE id = @taskId AND user_id = @userId
-        """;
+        WHERE id = @id AND owner_id = @owner_id;
+        """);
+    command.Parameters.Add("id", NpgsqlDbType.Uuid).Value = id;
+    command.Parameters.Add("owner_id", NpgsqlDbType.Uuid).Value = ownerId;
 
-    await using var connection =
-        await _dataSource.OpenConnectionAsync();
-
-    await using var command =
-        new NpgsqlCommand(sql, connection);
-
-    command.Parameters.AddWithValue("taskId", taskId);
-    command.Parameters.AddWithValue("userId", userId);
-
-    await using var reader =
-        await command.ExecuteReaderAsync();
-
-    if (!await reader.ReadAsync())
-        return null;
-
-    return new TaskItem
-    {
-        Id = reader.GetGuid(0),
-        Title = reader.GetString(1),
-        Description = reader.IsDBNull(2)
-            ? null
-            : reader.GetString(2),
-        Status = reader.GetString(3),
-        DueDate = reader.IsDBNull(4)
-            ? null
-            : reader.GetFieldValue<DateTime>(4)
-    };
+    await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+    return await reader.ReadAsync(cancellationToken) ? ReadTask(reader) : null;
 }
 ```
 
-These samples illustrate two important design decisions:
+### Domain rule discovered during design
 
-- **Separation of concerns:** controllers do not execute SQL or implement business rules.
-- **Data isolation:** queries include the authenticated user's identifier, preventing access to another user's tasks.
+The generated replacement behavior allows an existing overdue date to remain unchanged but rejects selecting a different past date:
 
-The repository and service interfaces allow the application logic to be tested independently of PostgreSQL.
+```csharp
+if (dueDate != DueDate)
+{
+    ValidateDueDate(dueDate, utcToday);
+}
+```
 
-## 4. Validation of AI-Generated Code
+## How the AI output was validated and corrected
 
-AI-generated code should not be assumed correct simply because it compiles.
+| Generated proposal or assumption | Validation | Correction |
+| --- | --- | --- |
+| JWT configuration could be captured eagerly during host composition | A real `WebApplicationFactory` authentication test returned `500` | Bound bearer options after final configuration so test overrides and runtime configuration use the same effective values |
+| A fixed test clock automatically controlled IdentityModel lifetime validation | Expired-token tests consulted a different clock | Added an explicit lifetime validator using the injected `TimeProvider` while retaining issuer, audience, signature, and skew validation |
+| Default ASP.NET `400` and JWT `401` responses were sufficient | API contract tests exposed inconsistent response bodies | Added stable Problem Details error codes for request rejection and authentication challenges |
+| A public rehydration method could trust persisted values | Domain review found invariant bypasses | Added RED-GREEN tests and validation for identifiers, text limits, and status while preserving stored text and overdue dates |
+| Mobile account navigation required no special handling | Browser inspection at 390 px showed wrapping | Added a failing computed-style test, then applied `white-space: nowrap` |
+| A flat task list was sufficient for scanning | User review requested grouping by status | Added native tracked accordions, component regressions, and desktop/mobile browser verification |
 
-My validation approach focuses on four areas.
+## Authentication, validation, and edge cases
 
-### Functional correctness
+- Passwords are stored through ASP.NET Core's adaptive password hasher, never as plaintext.
+- JWTs validate issuer, audience, signature, and lifetime.
+- Task routes use the authenticated subject and never accept an owner ID from the client.
+- Owner predicates apply to read, replace, and delete SQL; foreign and missing records both return `404`.
+- All user-influenced SQL values use Npgsql parameters.
+- Registration normalizes email and handles concurrent duplicates deterministically.
+- Domain and database constraints cover blank or oversized task text and invalid status values.
+- Due dates are optional; newly selected dates must be today or later using the server's UTC date.
+- Malformed requests, invalid credentials, invalid JWTs, unknown IDs, and persistence conflicts have stable HTTP behavior.
 
-- Compare the implementation against the user story and acceptance criteria.
-- Verify CRUD operations through actual HTTP requests.
-- Check response payloads and HTTP status codes.
-- Verify that database operations persist the expected changes.
+## Verification evidence
 
-### Automated testing
+Latest verified results:
 
-- **Unit tests:** verify domain rules and application behavior independently of infrastructure.
-- **Integration tests:** verify repository behavior against PostgreSQL.
-- **API tests:** verify routing, validation, authentication, authorization, and HTTP responses.
+| Check | Result |
+| --- | --- |
+| `dotnet test TaskBoard.slnx` | 60 unit tests and 36 integration tests passed |
+| `npm test -- --watch=false` | 31 Angular tests passed across 9 files |
+| `npm run build` | Production build completed; initial bundle 266.01 kB, estimated transfer 72.54 kB |
+| PostgreSQL integration | Real PostgreSQL exercised through Testcontainers, including migrations, constraints, repositories, seeding, and hosted API behavior |
+| Browser inspection | Authenticated CRUD and status accordions inspected at desktop and 390 by 844; browser warning/error console was empty |
 
-### Architecture review
+More detailed prompt, correction, security, and commit evidence is recorded in `docs/ai-usage.md`.
 
-- Verify that dependencies follow Clean Architecture boundaries.
-- Check that business logic is not embedded in controllers or repositories.
-- Review dependency injection and interface responsibilities.
-- Identify unnecessary abstractions or duplicated logic.
+## Conclusion
 
-### Security review
-
-- Verify that SQL queries are parameterized.
-- Confirm that passwords are securely hashed.
-- Validate JWT authentication and protected endpoints.
-- Verify that users cannot access or modify another user's tasks.
-
-## 5. Corrections and Improvements
-
-One of the most important aspects of AI-assisted development is challenging generated solutions rather than accepting them automatically.
-
-The following are examples of improvements I would prioritize during review.
-
-**User ownership enforcement**
-
-A simple implementation might retrieve tasks using only their task ID. This is insufficient for a multi-user application.
-
-I would require all task retrieval, update, and delete operations to enforce ownership using the authenticated user's ID.
-
-**Avoiding unnecessary abstractions**
-
-AI tools sometimes introduce generic repositories, additional service layers, or unnecessary design patterns.
-
-For this application, I prefer explicit repositories and application services with clearly defined responsibilities.
-
-**Database access**
-
-I would replace any dynamically constructed SQL containing user input with parameterized queries and verify the handling of nullable values, missing records, and database constraints.
-
-**Validation and error handling**
-
-I would ensure validation failures return meaningful errors instead of unexpected server exceptions, using consistent HTTP responses such as `400 Bad Request`, `401 Unauthorized`, `404 Not Found`, and `409 Conflict`.
-
-**Test quality**
-
-I would review generated tests to ensure they validate meaningful behavior rather than implementation details. Mocks should be used for isolation, while integration tests should verify real database behavior.
-
-## 6. Edge Cases, Authentication, and Validation
-
-The following scenarios are particularly important:
-
-| Scenario | Expected behavior |
-|---|---|
-| Create a task without authentication | 401 Unauthorized |
-| Access another user's task | 404 Not Found |
-| Create a task without a title | 400 Bad Request |
-| Create a task with an invalid status | 400 Bad Request |
-| Retrieve a nonexistent task | 404 Not Found |
-| Register with an existing email | 409 Conflict |
-| Login with invalid credentials | 401 Unauthorized |
-| Create a valid task | 201 Created |
-| Delete an existing task | 204 No Content |
-
-Returning `404 Not Found` for another user's task avoids revealing whether that resource exists.
-
-### Authentication
-
-- Passwords are stored as secure hashes, never plaintext.
-- Login credentials are validated before issuing a JWT.
-- Protected endpoints require a valid authentication token.
-- User ownership is determined from authenticated claims, not client-submitted user IDs.
-- Authentication and authorization are treated as separate concerns.
-
-### Input validation
-
-- Required fields are validated.
-- String lengths are constrained.
-- Status values are restricted to supported values.
-- Invalid identifiers and malformed requests are handled.
-- Database constraints provide an additional layer of protection.
-
-## 7. Conclusion
-
-Generative AI was used as an engineering productivity tool, not as a replacement for technical judgment.
-
-The main benefits were accelerating repetitive implementation, generating initial tests, exploring alternatives, and supporting code review.
-
-The most important part of the process was maintaining control over architecture, security, correctness, and maintainability.
-
-**My guiding principle is to treat AI-generated code as a proposal that must be understood, reviewed, tested, and validated before being accepted.**
+AI output was treated as a proposal. Architecture, security, business rules, and corrections were accepted only after code review and observable test or browser evidence.

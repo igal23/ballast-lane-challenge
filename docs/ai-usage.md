@@ -76,9 +76,9 @@ Fresh evidence recorded on 2026-11-06:
 | --- | --- |
 | `PATH="/Applications/Docker.app/Contents/Resources/bin:$PATH" bash scripts/check-prereqs.sh` | .NET 10.0.301, Node 26.13.0, Docker Compose available |
 | `docker compose down -v`, `docker compose up -d`, `docker compose ps` | TaskBoard-only volume recreated; PostgreSQL 17 reported healthy |
-| `dotnet test TaskBoard.slnx` | Final run: 52 unit tests and 36 integration tests passed; 0 failed, 0 skipped |
-| `npm test -- --watch=false` | Final run: 9 files and 29 tests passed; 0 failed |
+| `dotnet test TaskBoard.slnx` | Final run: 60 unit tests and 36 integration tests passed; 0 failed, 0 skipped |
+| `npm test -- --watch=false` | Final run: 9 files and 31 tests passed; 0 failed |
 | Focused mobile navigation RED/GREEN | 1 failing computed-style assertion, then 3 of 3 app tests passed |
-| `npm run build` | Final production bundle completed; initial 266.01 kB, estimated transfer 72.52 kB |
+| `npm run build` | Final production bundle completed; initial 266.01 kB, estimated transfer 72.54 kB |
 | Local API demo path | Ping, seeded login, `/me`, seeded list, create, read, WIP replacement, completion, delete, past date rejection, invalid JWT, duplicate registration, and three cross-user isolation checks all returned expected statuses |
-| Browser inspection | Login, registration, board, edit state, desktop layout, 390 by 844 mobile layout, keyboard focus, and browser warning/error console checked; console was empty |
+| Browser inspection | Login, registration, board, edit state, native status accordions, desktop layout, 390 by 844 mobile layout, keyboard focus, and browser warning/error console checked; console was empty |
