@@ -1,0 +1,30 @@
+# macOS / editors
+.DS_Store
+.idea/
+.vscode/
+
+# .NET
+**/bin/
+**/obj/
+TestResults/
+*.user
+**/.vs/
+
+# Angular / Node
+**/node_modules/
+**/dist/
+**/.angular/
+**/coverage/
+
+# Secrets / local configuration
+.env
+.env.*
+!.env.example
+*.local.json
+**/appsettings.Production.json
+**/appsettings.Local.json
+
+# Misc
+*.log
+prompts/
+.superpowers/
