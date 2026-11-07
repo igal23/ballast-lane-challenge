@@ -151,10 +151,30 @@ public sealed class TaskItemTests
     }
 
     [Fact]
+    public void Rehydrate_WhitespacePaddedTitleLongerThan200Characters_ThrowsTooLongError()
+    {
+        var exception = Assert.Throws<DomainValidationException>(() =>
+            Rehydrate(title: $"Task{new string(' ', 197)}"));
+
+        Assert.Equal("task.title.too_long", exception.Code);
+        Assert.Equal("title", exception.Field);
+    }
+
+    [Fact]
     public void Rehydrate_DescriptionLongerThan2000Characters_ThrowsTooLongError()
     {
         var exception = Assert.Throws<DomainValidationException>(() =>
             Rehydrate(description: new string('x', 2001)));
+
+        Assert.Equal("task.description.too_long", exception.Code);
+        Assert.Equal("description", exception.Field);
+    }
+
+    [Fact]
+    public void Rehydrate_WhitespacePaddedDescriptionLongerThan2000Characters_ThrowsTooLongError()
+    {
+        var exception = Assert.Throws<DomainValidationException>(() =>
+            Rehydrate(description: $"Description{new string(' ', 1990)}"));
 
         Assert.Equal("task.description.too_long", exception.Code);
         Assert.Equal("description", exception.Field);

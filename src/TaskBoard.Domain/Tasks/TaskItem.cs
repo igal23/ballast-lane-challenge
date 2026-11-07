@@ -73,8 +73,8 @@ public sealed class TaskItem
             throw new DomainValidationException("task.owner_id.required", "ownerId");
         }
 
-        NormalizeTitle(title);
-        NormalizeDescription(description);
+        ValidatePersistedTitle(title);
+        ValidatePersistedDescription(description);
         ValidateStatus(status);
 
         return new TaskItem(id, ownerId, title, description, status, dueDate);
@@ -126,6 +126,27 @@ public sealed class TaskItem
         }
 
         return string.IsNullOrEmpty(normalized) ? null : normalized;
+    }
+
+    private static void ValidatePersistedTitle(string title)
+    {
+        if (string.IsNullOrWhiteSpace(title))
+        {
+            throw new DomainValidationException("task.title.required", "title");
+        }
+
+        if (title.Length > 200)
+        {
+            throw new DomainValidationException("task.title.too_long", "title");
+        }
+    }
+
+    private static void ValidatePersistedDescription(string? description)
+    {
+        if (description is { Length: > 2000 })
+        {
+            throw new DomainValidationException("task.description.too_long", "description");
+        }
     }
 
     private static void ValidateDueDate(DateOnly? dueDate, DateOnly utcToday)
